@@ -8,13 +8,15 @@ import PreviewFrame from './PreviewFrame';
 import ComponentsList from './ComponentsList';
 import StylesEditor from './StylesEditor';
 import CodeEditor from './CodeEditor';
-import { Download, Eye, FileText, Save } from 'lucide-react';
+import { Download, Eye, FileText, Save, Code, FileImage } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import FileUploader from './FileUploader';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Define a shared type for component data that will be used across files
 export type ComponentData = {
@@ -49,15 +51,32 @@ export type ComponentData = {
     title: string;
     problems: Array<{ id: number; question: string; icon: string; description: string }>;
   };
+  footer?: {
+    copyright: string;
+    quickLinks: Array<{label: string, url: string}>;
+    socialLinks: Array<{label: string, url: string}>;
+    contactInfo: {
+      address: string;
+      email: string;
+      phone: string;
+    };
+  };
 };
 
-const PageEditor = () => {
+interface PageEditorProps {
+  initialComponentsData?: Partial<ComponentData>;
+  onSave?: (data: ComponentData) => void;
+}
+
+const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
   const [activeSection, setActiveSection] = useState('hero');
   const [selectedComponent, setSelectedComponent] = useState('');
   const [showCodeViewer, setShowCodeViewer] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
+  const [showMediaUploader, setShowMediaUploader] = useState(false);
   const { toast } = useToast();
   const [editMode, setEditMode] = useState<'visual' | 'code'>('visual');
+  const [previewMode, setPreviewMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   
   // Define the initial data structure for all editable components
   const [componentsData, setComponentsData] = useState<ComponentData>({
@@ -121,20 +140,56 @@ const PageEditor = () => {
           description: "The average trade show visitor walks past 87% of booths without stopping - yours doesn't have to be one of them."
         }
       ]
+    },
+    footer: {
+      copyright: `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
+      quickLinks: [
+        { label: "Services", url: "#" },
+        { label: "Case Studies", url: "#testimonials" },
+        { label: "FAQ", url: "#faq" },
+        { label: "Contact", url: "#" }
+      ],
+      socialLinks: [
+        { label: "Facebook", url: "#" },
+        { label: "Instagram", url: "#" },
+        { label: "LinkedIn", url: "#" }
+      ],
+      contactInfo: {
+        address: "Business Bay, Dubai, UAE",
+        email: "info@idesignads.ae",
+        phone: "+971 4 123 4567"
+      }
     }
   });
 
-  // Load data from localStorage on initial load
+  // Load data from localStorage on initial load or use initialComponentsData if provided
   useEffect(() => {
-    const savedData = localStorage.getItem('landingPageData');
-    if (savedData) {
-      try {
-        setComponentsData(JSON.parse(savedData));
-      } catch (error) {
-        console.error('Failed to parse saved data:', error);
+    if (initialComponentsData) {
+      // Merge with defaults
+      const mergedData = { ...componentsData };
+      
+      Object.keys(initialComponentsData).forEach(key => {
+        const typedKey = key as keyof ComponentData;
+        if (initialComponentsData[typedKey]) {
+          mergedData[typedKey] = {
+            ...mergedData[typedKey],
+            ...initialComponentsData[typedKey]
+          };
+        }
+      });
+      
+      setComponentsData(mergedData);
+    } else {
+      const savedData = localStorage.getItem('landingPageData');
+      if (savedData) {
+        try {
+          setComponentsData(JSON.parse(savedData));
+        } catch (error) {
+          console.error('Failed to parse saved data:', error);
+        }
       }
     }
-  }, []);
+  }, [initialComponentsData]);
 
   // Simplified structure of sections that can be edited
   const sections = [
@@ -169,6 +224,7 @@ const PageEditor = () => {
     });
   };
 
+  // Handle direct edit of element
   const handleDirectEdit = (sectionId: string, elementId: string, newValue: any) => {
     if (!componentsData[sectionId as keyof ComponentData]) return;
     
@@ -185,6 +241,29 @@ const PageEditor = () => {
     });
   };
 
+  // Handle file upload for media
+  const handleMediaUploaded = (fileUrl: string, fileName: string) => {
+    if (activeSection === 'hero') {
+      if (selectedComponent === 'imageUrl' || !selectedComponent) {
+        updateComponentData('hero', 'imageUrl', fileUrl);
+        setSelectedComponent('imageUrl');
+        toast({
+          title: "Image uploaded",
+          description: `${fileName} has been set as the hero image`,
+        });
+      } else if (selectedComponent === 'backgroundImage') {
+        updateComponentData('hero', 'backgroundImage', fileUrl);
+        toast({
+          title: "Background image uploaded",
+          description: `${fileName} has been set as the background image`,
+        });
+      }
+    }
+    
+    setShowMediaUploader(false);
+  };
+
+  // Handle publish functionality
   const handlePublish = () => {
     // Save the data to localStorage
     localStorage.setItem('landingPageData', JSON.stringify(componentsData));
@@ -206,8 +285,14 @@ const PageEditor = () => {
       title: "Changes published",
       description: "Your changes have been published to the live site",
     });
+
+    // Call the onSave callback if provided
+    if (onSave) {
+      onSave(componentsData);
+    }
   };
 
+  // Handle save draft functionality
   const handleSaveDraft = () => {
     // Save the data to localStorage but don't update the published version
     localStorage.setItem('landingPageData', JSON.stringify(componentsData));
@@ -218,6 +303,7 @@ const PageEditor = () => {
     });
   };
 
+  // Export as HTML functionality
   const exportAsHTML = () => {
     // Generate HTML for the landing page
     const html = `
@@ -228,14 +314,42 @@ const PageEditor = () => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
+            /* Reset and base styles */
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: system-ui, sans-serif; line-height: 1.5; color: #333; }
+            img { max-width: 100%; height: auto; }
             .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-            .hero { padding: 2rem 0; }
+            
+            /* Component styles */
+            .header { padding: 1rem 0; border-bottom: 1px solid #eee; }
+            .logo { font-size: 1.5rem; font-weight: bold; }
+            
+            /* Hero section */
+            .hero { 
+              padding: 4rem 0; 
+              background-color: ${componentsData.hero.backgroundColor}; 
+              color: ${componentsData.hero.textColor};
+              position: relative;
+            }
+            .hero-content {
+              display: flex;
+              flex-direction: ${componentsData.hero.layout === 'split' ? 'row' : 'column'};
+              align-items: ${componentsData.hero.alignment === 'center' ? 'center' : 'flex-start'};
+              gap: 2rem;
+              text-align: ${componentsData.hero.alignment};
+            }
             .hero h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
             .hero h2 { font-size: 1.8rem; margin-bottom: 1rem; }
-            .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
-            .feature { display: flex; align-items: center; }
-            .feature-icon { margin-right: 0.5rem; }
+            .hero-text, .hero-image {
+              flex: ${componentsData.hero.layout === 'split' ? '1' : 'auto'};
+            }
+            .feature-list { 
+              margin: 1.5rem 0; 
+              display: grid; 
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 1rem;
+            }
+            .feature-item { display: flex; align-items: center; gap: 0.5rem; }
             .cta-button { 
               background-color: ${componentsData.hero.buttonColor}; 
               color: ${componentsData.hero.buttonTextColor}; 
@@ -243,44 +357,131 @@ const PageEditor = () => {
               border: none; 
               border-radius: 0.25rem;
               font-weight: bold;
+              font-size: 1rem;
               cursor: pointer;
+              display: inline-block;
+              text-decoration: none;
+              margin-top: 1.5rem;
             }
-            .achievements { padding: 2rem 0; text-align: center; }
-            .achievement-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
-            .achievement-item { padding: 1rem; }
+            
+            /* Achievements section */
+            .achievements { padding: 4rem 0; text-align: center; background-color: #f9f9f9; }
+            .achievements h2 { font-size: 2rem; margin-bottom: 2rem; }
+            .achievements-grid { 
+              display: grid; 
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 2rem; 
+            }
+            .achievement-item { padding: 1.5rem; }
             .achievement-number { font-size: 2.5rem; font-weight: bold; color: #4338ca; }
-            .faq-section { padding: 2rem 0; }
-            .faq-item { margin-bottom: 1rem; }
+            
+            /* Pain Points section */
+            .pain-points { padding: 4rem 0; }
+            .pain-points h2 { font-size: 2rem; margin-bottom: 2rem; text-align: center; }
+            .problems-grid { 
+              display: grid; 
+              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+              gap: 2rem; 
+            }
+            .problem-item { 
+              padding: 1.5rem; 
+              border: 1px solid #eee;
+              border-radius: 0.5rem;
+            }
+            .problem-icon { 
+              font-size: 2rem; 
+              background-color: #f5f5f5;
+              width: 4rem;
+              height: 4rem;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              margin-bottom: 1rem;
+            }
+            
+            /* FAQ section */
+            .faq { padding: 4rem 0; background-color: #f5f5f5; }
+            .faq h2 { font-size: 2rem; margin-bottom: 2rem; }
+            .faq-item { 
+              margin-bottom: 1rem; 
+              padding: 1.5rem;
+              background-color: white;
+              border-radius: 0.5rem;
+            }
             .faq-question { font-weight: bold; margin-bottom: 0.5rem; }
-            .faq-answer { margin-left: 1rem; }
+            
+            /* Footer */
+            .footer { 
+              padding: 4rem 0 2rem; 
+              background-color: #1f2937; 
+              color: #f9fafb;
+            }
+            .footer-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 2rem;
+            }
+            .footer h3 { margin-bottom: 1.5rem; }
+            .footer-links { list-style: none; }
+            .footer-links li { margin-bottom: 0.5rem; }
+            .footer-links a { color: #d1d5db; text-decoration: none; }
+            .footer-links a:hover { color: white; }
+            .footer-bottom { 
+              margin-top: 3rem;
+              padding-top: 1.5rem;
+              border-top: 1px solid #374151;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+            .social-links { display: flex; gap: 1rem; margin-bottom: 1rem; }
+            
+            /* Responsive adjustments */
+            @media (max-width: 768px) {
+              .hero-content { flex-direction: column; text-align: center; }
+              .footer-grid { grid-template-columns: 1fr; }
+              .footer-bottom { flex-direction: column; text-align: center; }
+            }
           </style>
         </head>
         <body>
-          <header>
+          <header class="header">
             <div class="container">
-              <h2>iDesign</h2>
+              <div class="logo">IDesign</div>
             </div>
           </header>
 
           <main>
-            <section class="hero" style="background-color: ${componentsData.hero.backgroundColor}; color: ${componentsData.hero.textColor};">
+            <!-- Hero Section -->
+            <section class="hero">
               <div class="container">
-                <h1>${componentsData.hero.title}</h1>
-                <h2>${componentsData.hero.subtitle}</h2>
-                <p>${componentsData.hero.description}</p>
-                <div class="features">
-                  ${componentsData.hero.features.map(feature => 
-                    `<div class="feature"><span class="feature-icon">✓</span> ${feature}</div>`
-                  ).join('')}
+                <div class="hero-content">
+                  <div class="hero-text">
+                    <h1>${componentsData.hero.title}</h1>
+                    <h2>${componentsData.hero.subtitle}</h2>
+                    <p>${componentsData.hero.description}</p>
+                    <div class="feature-list">
+                      ${componentsData.hero.features.map(feature => 
+                        `<div class="feature-item">✓ ${feature}</div>`
+                      ).join('')}
+                    </div>
+                    <a href="#contact" class="cta-button">${componentsData.hero.ctaText}</a>
+                  </div>
+                  ${componentsData.hero.showImage && componentsData.hero.imageUrl ? 
+                    `<div class="hero-image">
+                      <img src="${componentsData.hero.imageUrl}" alt="Hero Image">
+                    </div>` : ''
+                  }
                 </div>
-                <button class="cta-button">${componentsData.hero.ctaText}</button>
               </div>
             </section>
 
+            <!-- Achievements Section -->
             <section class="achievements">
               <div class="container">
                 <h2>${componentsData.achievements.title}</h2>
-                <div class="achievement-grid">
+                <div class="achievements-grid">
                   ${componentsData.achievements.items.map(item => 
                     `<div class="achievement-item">
                       <div class="achievement-number">${item.number}</div>
@@ -291,7 +492,24 @@ const PageEditor = () => {
               </div>
             </section>
 
-            <section class="faq-section">
+            <!-- Pain Points Section -->
+            <section class="pain-points">
+              <div class="container">
+                <h2>${componentsData.painPoints.title}</h2>
+                <div class="problems-grid">
+                  ${componentsData.painPoints.problems.map(problem => 
+                    `<div class="problem-item">
+                      <div class="problem-icon">${problem.icon}</div>
+                      <h3>${problem.question}</h3>
+                      <p>${problem.description}</p>
+                    </div>`
+                  ).join('')}
+                </div>
+              </div>
+            </section>
+
+            <!-- FAQ Section -->
+            <section class="faq">
               <div class="container">
                 <h2>${componentsData.faq.title}</h2>
                 <div class="faq-items">
@@ -306,24 +524,60 @@ const PageEditor = () => {
             </section>
           </main>
 
-          <footer>
+          <!-- Footer -->
+          <footer class="footer">
             <div class="container">
-              <p>&copy; ${new Date().getFullYear()} IDesign. All rights reserved.</p>
+              <div class="footer-grid">
+                <div>
+                  <h3>IDesign Ads</h3>
+                  <p>The UAE's Most Awarded Signage Team, creating high-conversion signage solutions that drive business growth and maximize visibility.</p>
+                  <div class="social-links">
+                    ${componentsData.footer?.socialLinks.map(link => 
+                      `<a href="${link.url}">${link.label}</a>`
+                    ).join('')}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3>Quick Links</h3>
+                  <ul class="footer-links">
+                    ${componentsData.footer?.quickLinks.map(link => 
+                      `<li><a href="${link.url}">${link.label}</a></li>`
+                    ).join('')}
+                  </ul>
+                </div>
+                
+                <div>
+                  <h3>Contact Us</h3>
+                  <address>
+                    <p>${componentsData.footer?.contactInfo.address}</p>
+                    <p>Email: ${componentsData.footer?.contactInfo.email}</p>
+                    <p>Phone: ${componentsData.footer?.contactInfo.phone}</p>
+                  </address>
+                </div>
+              </div>
+              
+              <div class="footer-bottom">
+                <p>${componentsData.footer?.copyright}</p>
+              </div>
             </div>
           </footer>
         </body>
       </html>
     `;
 
+    // Create a blob with the HTML content
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
+    // Create a download link and trigger it
     const a = document.createElement('a');
     a.href = url;
     a.download = 'landing-page-export.html';
     document.body.appendChild(a);
     a.click();
     
+    // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
@@ -335,6 +589,16 @@ const PageEditor = () => {
     });
   };
 
+  // Export as ZIP functionality
+  const exportAsZip = () => {
+    // In a real implementation, we would bundle all assets and HTML into a ZIP file
+    toast({
+      title: "ZIP Export",
+      description: "Preparing ZIP export... This feature will be available soon.",
+    });
+  };
+
+  // Export as PDF functionality
   const exportAsPDF = () => {
     toast({
       title: "PDF Export",
@@ -342,17 +606,22 @@ const PageEditor = () => {
     });
   };
 
+  // Handle drag-and-drop functionality
   const handleDrop = (e: React.DragEvent, targetSection: string) => {
     e.preventDefault();
-    const componentData = JSON.parse(e.dataTransfer.getData('component'));
-    
-    toast({
-      title: "Component Added",
-      description: `${componentData.name} added to ${targetSection}`,
-    });
-    
-    // Here we would actually add the component to the section
-    console.log('Added component', componentData, 'to section', targetSection);
+    try {
+      const componentData = JSON.parse(e.dataTransfer.getData('component'));
+      
+      toast({
+        title: "Component Added",
+        description: `${componentData.name} added to ${targetSection}`,
+      });
+      
+      // Here we would actually add the component to the section
+      console.log('Added component', componentData, 'to section', targetSection);
+    } catch (error) {
+      console.error('Failed to parse dragged component data:', error);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -384,6 +653,10 @@ const PageEditor = () => {
                   <FileText className="w-4 h-4 mr-2" />
                   Export as HTML
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportAsZip}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as ZIP
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={exportAsPDF}>
                   <FileText className="w-4 h-4 mr-2" />
                   Export as PDF
@@ -394,6 +667,22 @@ const PageEditor = () => {
             <Button variant="outline" onClick={handleViewSite}>
               <Eye className="w-4 h-4 mr-1" /> Preview
             </Button>
+            
+            <Dialog open={showMediaUploader} onOpenChange={setShowMediaUploader}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <FileImage className="w-4 h-4 mr-1" /> Media
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Upload or Replace Media</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <FileUploader onFileUploaded={handleMediaUploaded} />
+                </div>
+              </DialogContent>
+            </Dialog>
             
             <Button onClick={handlePublish}>
               Publish Changes
@@ -456,6 +745,26 @@ const PageEditor = () => {
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Preview</h2>
               <div className="flex gap-2">
+                <div className="flex border rounded overflow-hidden">
+                  <button 
+                    className={`px-3 py-1 text-sm ${previewMode === 'mobile' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    onClick={() => setPreviewMode('mobile')}
+                  >
+                    Mobile
+                  </button>
+                  <button 
+                    className={`px-3 py-1 text-sm ${previewMode === 'tablet' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    onClick={() => setPreviewMode('tablet')}
+                  >
+                    Tablet
+                  </button>
+                  <button 
+                    className={`px-3 py-1 text-sm ${previewMode === 'desktop' ? 'bg-primary text-white' : 'bg-transparent'}`}
+                    onClick={() => setPreviewMode('desktop')}
+                  >
+                    Desktop
+                  </button>
+                </div>
                 <Button 
                   variant={editMode === 'visual' ? "default" : "outline"}
                   size="sm"
@@ -486,6 +795,7 @@ const PageEditor = () => {
                 componentsData={componentsData}
                 onDirectEdit={handleDirectEdit}
                 editMode={true}
+                previewMode={previewMode}
               />
             )}
           </div>

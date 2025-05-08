@@ -1,7 +1,46 @@
 
 import React from 'react';
 
-const Footer = () => {
+type FooterData = {
+  copyright: string;
+  quickLinks: Array<{label: string, url: string}>;
+  socialLinks: Array<{label: string, url: string}>;
+  contactInfo: {
+    address: string;
+    email: string;
+    phone: string;
+  };
+};
+
+// Default data used when no custom data is provided
+const defaultFooterData: FooterData = {
+  copyright: `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
+  quickLinks: [
+    { label: "Services", url: "#" },
+    { label: "Case Studies", url: "#testimonials" },
+    { label: "FAQ", url: "#faq" },
+    { label: "Contact", url: "#" }
+  ],
+  socialLinks: [
+    { label: "Facebook", url: "#" },
+    { label: "Instagram", url: "#" },
+    { label: "LinkedIn", url: "#" }
+  ],
+  contactInfo: {
+    address: "Business Bay, Dubai, UAE",
+    email: "info@idesignads.ae",
+    phone: "+971 4 123 4567"
+  }
+};
+
+interface FooterProps {
+  customData?: Partial<FooterData>;
+}
+
+const Footer = ({ customData }: FooterProps) => {
+  // Merge default data with custom data if provided
+  const data = customData ? { ...defaultFooterData, ...customData } : defaultFooterData;
+  
   return (
     <footer className="bg-gray-900 text-gray-200 py-12">
       <div className="container">
@@ -14,39 +53,45 @@ const Footer = () => {
               The UAE's Most Awarded Signage Team, creating high-conversion signage solutions that drive business growth and maximize visibility.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="hover:text-highlight transition-colors">Facebook</a>
-              <a href="#" className="hover:text-highlight transition-colors">Instagram</a>
-              <a href="#" className="hover:text-highlight transition-colors">LinkedIn</a>
+              {data.socialLinks.map((link, index) => (
+                <a key={index} href={link.url} className="hover:text-highlight transition-colors">
+                  {link.label}
+                </a>
+              ))}
             </div>
           </div>
           
           <div>
             <h4 className="font-bold mb-4">Quick Links</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Services</a></li>
-              <li><a href="#testimonials" className="text-gray-400 hover:text-white transition-colors">Case Studies</a></li>
-              <li><a href="#faq" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+              {data.quickLinks.map((link, index) => (
+                <li key={index}>
+                  <a href={link.url} className="text-gray-400 hover:text-white transition-colors">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
           
           <div>
             <h4 className="font-bold mb-4">Contact Us</h4>
             <address className="text-gray-400 not-italic">
-              <p className="mb-2">Business Bay, Dubai, UAE</p>
-              <p className="mb-2">Email: info@idesignads.ae</p>
-              <p className="mb-2">Phone: +971 4 123 4567</p>
+              <p className="mb-2">{data.contactInfo.address}</p>
+              <p className="mb-2">Email: {data.contactInfo.email}</p>
+              <p className="mb-2">Phone: {data.contactInfo.phone}</p>
             </address>
           </div>
         </div>
         
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} IDesign Ads. All rights reserved.
+            {data.copyright}
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Privacy Policy</a>
             <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Terms of Service</a>
+            <a href="/admin/dashboard" className="text-sm text-gray-600 hover:text-gray-400 transition-colors">Admin Dashboard</a>
           </div>
         </div>
       </div>

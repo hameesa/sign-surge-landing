@@ -10,11 +10,17 @@ interface PreviewFrameProps {
   componentsData: ComponentData;
   onDirectEdit?: (sectionId: string, elementId: string, newValue: any) => void;
   editMode?: boolean;
+  previewMode?: 'mobile' | 'tablet' | 'desktop';
 }
 
-const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = false }: PreviewFrameProps) => {
+const PreviewFrame = ({ 
+  sectionId, 
+  componentsData, 
+  onDirectEdit, 
+  editMode = false, 
+  previewMode = 'desktop' 
+}: PreviewFrameProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [activeEditElement, setActiveEditElement] = useState<{ id: string; value: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   
@@ -35,7 +41,7 @@ const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = fals
 
   // Get the appropriate container class based on the preview size
   const getPreviewContainerClass = () => {
-    switch (previewSize) {
+    switch (previewMode) {
       case 'desktop':
         return 'w-full';
       case 'tablet':
@@ -152,8 +158,16 @@ const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = fals
           <div style={sectionStyle} className="rounded-lg overflow-hidden">
             <div className="max-w-4xl mx-auto" style={contentStyle as React.CSSProperties}>
               {heroSection.showImage && heroSection.imageUrl && heroSection.imagePosition === 'left' && (
-                <div className="flex-1">
+                <div className="flex-1 relative group">
                   <img src={heroSection.imageUrl} alt="Hero" className="w-full h-auto rounded-lg" />
+                  {editMode && onDirectEdit && (
+                    <button 
+                      onClick={() => startEdit('imageUrl', heroSection.imageUrl)} 
+                      className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               )}
               
@@ -211,8 +225,16 @@ const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = fals
               </div>
               
               {heroSection.showImage && heroSection.imageUrl && heroSection.imagePosition === 'right' && (
-                <div className="flex-1">
+                <div className="flex-1 relative group">
                   <img src={heroSection.imageUrl} alt="Hero" className="w-full h-auto rounded-lg" />
+                  {editMode && onDirectEdit && (
+                    <button 
+                      onClick={() => startEdit('imageUrl', heroSection.imageUrl)} 
+                      className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -344,6 +366,76 @@ const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = fals
         );
       }
       
+      case 'footer': {
+        const footerSection = componentsData.footer;
+        
+        if (!footerSection) return null;
+        
+        return (
+          <div className="bg-gray-900 text-gray-200 p-8 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="md:col-span-2">
+                <h3 className="text-xl font-bold mb-4">
+                  <span className="text-highlight">I</span>Design Ads
+                </h3>
+                <p className="mb-4 text-gray-400">
+                  The UAE's Most Awarded Signage Team, creating high-conversion signage solutions that drive business growth and maximize visibility.
+                </p>
+                <div className="flex space-x-4">
+                  {footerSection.socialLinks.map((link, index) => (
+                    <a key={index} href={link.url} className="hover:text-highlight transition-colors">
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-bold mb-4">Quick Links</h4>
+                <ul className="space-y-2">
+                  {footerSection.quickLinks.map((link, index) => (
+                    <li key={index}>
+                      <a href={link.url} className="text-gray-400 hover:text-white transition-colors">
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-bold mb-4">Contact Us</h4>
+                <address className="text-gray-400 not-italic">
+                  <p className="mb-2">{footerSection.contactInfo.address}</p>
+                  <p className="mb-2">Email: {footerSection.contactInfo.email}</p>
+                  <p className="mb-2">Phone: {footerSection.contactInfo.phone}</p>
+                </address>
+              </div>
+            </div>
+            
+            <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+              <div className="relative group">
+                <p className="text-sm text-gray-500">
+                  {footerSection.copyright}
+                </p>
+                {editMode && onDirectEdit && (
+                  <button 
+                    onClick={() => startEdit('footer.copyright', footerSection.copyright)} 
+                    className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="flex space-x-4 mt-4 md:mt-0">
+                <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Privacy Policy</a>
+                <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Terms of Service</a>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
       default:
         return (
           <div className="bg-gray-100 p-8 rounded-lg flex items-center justify-center">
@@ -355,29 +447,6 @@ const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = fals
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-end items-center mb-4">
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setPreviewSize('desktop')} 
-            className={`px-3 py-1 text-sm rounded ${previewSize === 'desktop' ? 'bg-primary text-white' : 'bg-gray-200'}`}
-          >
-            Desktop
-          </button>
-          <button 
-            onClick={() => setPreviewSize('tablet')} 
-            className={`px-3 py-1 text-sm rounded ${previewSize === 'tablet' ? 'bg-primary text-white' : 'bg-gray-200'}`}
-          >
-            Tablet
-          </button>
-          <button 
-            onClick={() => setPreviewSize('mobile')} 
-            className={`px-3 py-1 text-sm rounded ${previewSize === 'mobile' ? 'bg-primary text-white' : 'bg-gray-200'}`}
-          >
-            Mobile
-          </button>
-        </div>
-      </div>
-      
       <div className="flex-1 overflow-auto border rounded-lg bg-gray-50 p-4">
         <div className={getPreviewContainerClass()}>
           {isLoading ? (
