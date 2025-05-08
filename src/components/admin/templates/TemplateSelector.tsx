@@ -9,10 +9,9 @@ import { landingPageTemplates } from './templateData';
 
 interface TemplateSelectorProps {
   onSelectTemplate: (templateId: string, templateData: any) => void;
-  onGenerateAITemplate: () => void;
 }
 
-const TemplateSelector = ({ onSelectTemplate, onGenerateAITemplate }: TemplateSelectorProps) => {
+const TemplateSelector = ({ onSelectTemplate }: TemplateSelectorProps) => {
   const { toast } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
@@ -39,13 +38,7 @@ const TemplateSelector = ({ onSelectTemplate, onGenerateAITemplate }: TemplateSe
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Select a Template</h2>
-        <Button variant="outline" onClick={onGenerateAITemplate}>
-          <BotIcon className="w-4 h-4 mr-2" />
-          Generate with AI
-        </Button>
-      </div>
+      <h2 className="text-2xl font-bold">Select a Template</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {landingPageTemplates.map(template => (

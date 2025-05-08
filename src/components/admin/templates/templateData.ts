@@ -302,5 +302,109 @@ export const landingPageTemplates = [
         }
       }
     }
+  },
+  {
+    id: "ai-template-1",
+    name: "AI Template 1",
+    description: "AI-powered landing page template",
+    thumbnail: "https://via.placeholder.com/600",
+    tags: ["AI", "Template"],
+    conversionRate: "Average 5% conversion rate",
+    isAI: true,
+    data: {
+      hero: {
+        title: "AI Template 1",
+        subtitle: "This is an AI-powered template",
+        description: "This is a description",
+        ctaText: "Learn More",
+        features: [],
+        backgroundColor: "#ffffff",
+        textColor: "#000000",
+        buttonColor: "#000000",
+        buttonTextColor: "#ffffff",
+        layout: "split",
+        alignment: "left",
+        padding: "large",
+        spacing: "medium",
+        showImage: true,
+        imagePosition: "right",
+        imageUrl: "https://via.placeholder.com/600",
+        backgroundImage: ""
+      },
+      achievements: {
+        title: "Our Achievements",
+        items: []
+      },
+      painPoints: {
+        title: "Pain Points",
+        problems: []
+      },
+      faq: {
+        title: "FAQ",
+        items: []
+      },
+      footer: {
+        copyright: "© 2025 AI Template 1",
+        quickLinks: [],
+        socialLinks: [],
+        contactInfo: {
+          address: "",
+          email: "",
+          phone: ""
+        }
+      }
+    }
+  },
+  {
+    id: "ai-template-2",
+    name: "AI Template 2",
+    description: "AI-powered landing page template",
+    thumbnail: "https://via.placeholder.com/600",
+    tags: ["AI", "Template"],
+    conversionRate: "Average 5% conversion rate",
+    isAI: true,
+    data: {
+      hero: {
+        title: "AI Template 2",
+        subtitle: "This is an AI-powered template",
+        description: "This is a description",
+        ctaText: "Learn More",
+        features: [],
+        backgroundColor: "#ffffff",
+        textColor: "#000000",
+        buttonColor: "#000000",
+        buttonTextColor: "#ffffff",
+        layout: "split",
+        alignment: "left",
+        padding: "large",
+        spacing: "medium",
+        showImage: true,
+        imagePosition: "right",
+        imageUrl: "https://via.placeholder.com/600",
+        backgroundImage: ""
+      },
+      achievements: {
+        title: "Our Achievements",
+        items: []
+      },
+      painPoints: {
+        title: "Pain Points",
+        problems: []
+      },
+      faq: {
+        title: "FAQ",
+        items: []
+      },
+      footer: {
+        copyright: "© 2025 AI Template 2",
+        quickLinks: [],
+        socialLinks: [],
+        contactInfo: {
+          address: "",
+          email: "",
+          phone: ""
+        }
+      }
+    }
   }
 ];

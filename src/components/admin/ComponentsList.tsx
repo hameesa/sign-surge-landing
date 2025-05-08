@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,54 +18,34 @@ interface ComponentsListProps {
 const ComponentsList = ({ onSelectComponent, activeSection }: ComponentsListProps) => {
   const { toast } = useToast();
   // List of live components on the landing page
-  const [availableComponents, setAvailableComponents] = useState([
-    {
-      id: "hero",
-      name: "Hero",
-      description: "Main headline and call to action",
-      subcomponents: [
-        { id: "hero.title", name: "Title" },
-        { id: "hero.subtitle", name: "Subtitle" },
-        { id: "hero.cta", name: "CTA Button" },
-        { id: "hero.image", name: "Hero Image" }
-      ]
-    },
-    {
-      id: "achievements",
-      name: "Achievements",
-      description: "Counter stats section",
-      subcomponents: [
-        { id: "achievements.title", name: "Title" },
-        { id: "achievements.item1", name: "Stat Item 1" },
-        { id: "achievements.item2", name: "Stat Item 2" },
-        { id: "achievements.item3", name: "Stat Item 3" }
-      ]
-    },
-    {
-      id: "painPoints",
-      name: "Pain Points",
-      description: "Customer problems section",
-      subcomponents: [
-        { id: "painPoints.title", name: "Title" },
-        { id: "painPoints.problem1", name: "Problem 1" },
-        { id: "painPoints.problem2", name: "Problem 2" },
-        { id: "painPoints.problem3", name: "Problem 3" }
-      ]
-    },
-    {
-      id: "faq",
-      name: "FAQ",
-      description: "Frequently asked questions",
-      subcomponents: [
-        { id: "faq.title", name: "Title" },
-        { id: "faq.question1", name: "Question 1" },
-        { id: "faq.question2", name: "Question 2" }
-      ]
-    }
-  ]);
+  const [availableComponents, setAvailableComponents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const componentFiles = [
+      "Achievements",
+      "CaseStudies",
+      "ComparisonTable",
+      "FAQ",
+      "Footer",
+      "Header",
+      "Hero",
+      "OfferStack",
+      "PainPoints",
+      "UrgencyCTA"
+    ];
+
+    const components = componentFiles.map(file => ({
+      id: file.toLowerCase(),
+      name: file,
+      description: `The ${file} component`,
+      subcomponents: [] // Add subcomponents later if needed
+    }));
+
+    setAvailableComponents(components);
+  }, []);
 
   // List of components that can be dragged onto the page
-  const componentCategories = [
+  const [componentCategories, setComponentCategories] = useState([
     {
       name: "Layout",
       components: [
@@ -95,14 +74,36 @@ const ComponentsList = ({ onSelectComponent, activeSection }: ComponentsListProp
         { id: "tabs", name: "Tabs" },
         { id: "timer", name: "Countdown Timer" }
       ]
+    },
+    {
+      name: "All Components",
+      components: availableComponents.map(component => ({
+        id: component.id,
+        name: component.name
+      }))
     }
-  ];
+  ]);
 
   // State for tracking which component items are expanded
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   
   // Actively used components based on the current section
   const [activeComponents, setActiveComponents] = useState<any[]>([]);
+
+  useEffect(() => {
+    setComponentCategories(prevCategories => {
+      const newCategories = [...prevCategories];
+      const allComponentsCategory = newCategories.find(cat => cat.name === "All Components");
+
+      if (allComponentsCategory) {
+        allComponentsCategory.components = availableComponents.map(component => ({
+          id: component.id,
+          name: component.name
+        }));
+      }
+      return newCategories;
+    });
+  }, [availableComponents]);
 
   // Update active components when the section changes
   useEffect(() => {

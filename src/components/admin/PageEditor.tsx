@@ -180,13 +180,17 @@ const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
       const mergedData = { ...componentsData };
       
       Object.keys(initialComponentsData).forEach(key => {
-        const typedKey = key as keyof ComponentData;
-        if (initialComponentsData[typedKey]) {
-          mergedData[typedKey] = {
-            ...mergedData[typedKey],
-            ...initialComponentsData[typedKey]
-          };
-        }
+       const typedKey = key as keyof ComponentData;
+       if (initialComponentsData[typedKey]) {
+         const initialData = initialComponentsData[typedKey];
+         setComponentsData(prev => ({
+           ...prev,
+           [typedKey]: {
+             ...prev[typedKey],
+             ...initialData,
+           }
+         }));
+       }
       });
       
       setComponentsData(mergedData);
@@ -215,33 +219,32 @@ const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
     { id: 'footer', name: 'Footer' }
   ];
 
-  // Function to update component data
-  const updateComponentData = (section: string, field: string, value: any) => {
-    setComponentsData(prev => {
-      if (!prev[section as keyof ComponentData]) return prev;
-      
-      const updatedData = {
-        ...prev,
-        [section]: {
-          ...prev[section as keyof ComponentData],
-          [field]: value
-        }
-      };
-      
-      // Auto-save changes as draft
-      localStorage.setItem('landingPageData', JSON.stringify(updatedData));
-      
-      return updatedData;
-    });
-  };
 
-  // Handle direct edit of element
-  const handleDirectEdit = (sectionId: string, elementId: string, newValue: any) => {
-    if (!componentsData[sectionId as keyof ComponentData]) return;
-    
-    // Update the direct edit value
-    updateComponentData(sectionId, elementId, newValue);
-    
+ const updateComponentData = (section: string, field: string, value: any, existingFileUrl: string | null = null) => {
+   setComponentsData(prev => {
+     if (!prev[section as keyof ComponentData]) return prev;
+
+     const updatedData = {
+       ...prev,
+       [section]: {
+         ...prev[section as keyof ComponentData],
+         [field]: value
+       }
+     };
+
+     // Auto-save changes as draft
+     localStorage.setItem('landingPageData', JSON.stringify(updatedData));
+
+     return updatedData;
+   });
+ };
+
+// Handle direct edit of element
+const handleDirectEdit = (sectionId: string, elementId: string, newValue: any) => {
+  if (!componentsData[sectionId as keyof ComponentData]) return;
+
+  // Update the direct edit value
+  updateComponentData(sectionId, elementId, newValue);
     // Auto-focus this section
     setActiveSection(sectionId);
     setSelectedComponent(elementId);
@@ -253,7 +256,7 @@ const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
   };
 
   // Handle file upload for media
-  const handleMediaUploaded = (fileUrl: string, fileName: string) => {
+  const handleMediaUploaded = (fileUrl: string, fileName: string, existingFileUrl: string | null = null) => {
     if (activeSection === 'hero') {
       if (selectedComponent === 'imageUrl' || !selectedComponent) {
         updateComponentData('hero', 'imageUrl', fileUrl);
@@ -272,6 +275,17 @@ const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
     }
     
     setShowMediaUploader(false);
+  };
+
+  const getExistingFileUrl = () => {
+    if (activeSection === 'hero') {
+      if (selectedComponent === 'imageUrl' || !selectedComponent) {
+        return componentsData.hero.imageUrl;
+      } else if (selectedComponent === 'backgroundImage') {
+        return componentsData.hero.backgroundImage;
+      }
+    }
+    return null;
   };
 
   // Handle publish functionality
@@ -690,10 +704,13 @@ const PageEditor = ({ initialComponentsData, onSave }: PageEditorProps) => {
                   <DialogTitle>Upload or Replace Media</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                  <FileUploader onFileUploaded={handleMediaUploaded} />
+                  <FileUploader
+                    onFileUploaded={handleMediaUploaded}
+                    existingFileUrl={getExistingFileUrl()}
+                  />
                 </div>
               </DialogContent>
-            </Dialog>
+            </Dialog >
             
             <Button onClick={handlePublish}>
               Publish Changes

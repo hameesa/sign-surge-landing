@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from "lucide-react";
 import { HeroData } from '@/components/admin/PageEditor';
+import withStyling from '@/components/admin/withStyling';
 
 interface HeroProps {
   customData?: Partial<HeroData>;
@@ -17,18 +18,10 @@ const Hero = ({ customData }: HeroProps) => {
     "24-Hour Rush Service",
     "Free Design Consultation"
   ];
-  
-  // Apply custom styling if provided
-  const heroStyle = customData ? {
-    backgroundColor: customData.backgroundColor || "transparent",
-    color: customData.textColor || "inherit",
-    backgroundImage: customData.backgroundImage ? `url(${customData.backgroundImage})` : "none",
-  } : {};
 
   return (
-    <section 
-      className="py-16 md:py-24 bg-gradient-to-br from-blue-50 to-gray-100" 
-      style={heroStyle}
+    <section
+      className="py-16 md:py-24 bg-gradient-to-br from-blue-50 to-gray-100"
     >
       <div className="container">
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -90,4 +83,4 @@ const Hero = ({ customData }: HeroProps) => {
   );
 };
 
-export default Hero;
+export default withStyling(Hero);

@@ -8,7 +8,8 @@ interface FooterProps {
 const Footer = ({ customData }: FooterProps) => {
   // Merge default data with custom data if provided
   const defaultFooterData: FooterData = {
-    copyright: `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
+    // Placeholder for copyright, this should be fetched from admin panel settings
+    copyright: customData?.copyright || `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
     quickLinks: [
       { label: "Services", url: "#" },
       { label: "Case Studies", url: "#testimonials" },
@@ -76,10 +77,12 @@ const Footer = ({ customData }: FooterProps) => {
           <p className="text-sm text-gray-500">
             {data.copyright}
           </p>
+          <a href="/admin/dashboard" className="text-xs text-gray-600 hover:text-gray-400 transition-colors block mt-1">
+            Admin Dashboard
+          </a>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Privacy Policy</a>
             <a href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Terms of Service</a>
-            <a href="/admin/dashboard" className="text-sm text-gray-600 hover:text-gray-400 transition-colors">Admin Dashboard</a>
           </div>
         </div>
       </div>

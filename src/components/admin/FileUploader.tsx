@@ -9,15 +9,18 @@ interface FileUploaderProps {
   onFileUploaded: (fileUrl: string, fileName: string) => void;
   allowedTypes?: string[];
   maxSizeMB?: number;
+  existingFileUrl?: string | null;
 }
 
 const FileUploader = ({ 
   onFileUploaded,
   allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/svg+xml"],
-  maxSizeMB = 5
+  maxSizeMB = 5,
+  existingFileUrl = null
 }: FileUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(existingFileUrl);
   const { toast } = useToast();
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -71,57 +74,64 @@ const FileUploader = ({
     // For this demo, we'll just create a local URL
     setTimeout(() => {
       const fileUrl = URL.createObjectURL(file);
+      setPreviewUrl(fileUrl);
       onFileUploaded(fileUrl, file.name);
-      
+
       toast({
         title: "File uploaded",
         description: `${file.name} has been uploaded successfully`,
       });
-      
+
       setIsUploading(false);
     }, 1500);
   };
 
   return (
-    <div
-      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-        isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-      }`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="text-center space-y-4">
-        <div className="mx-auto bg-gray-100 rounded-full p-3 w-12 h-12 flex items-center justify-center">
-          <ImageIcon className="w-6 h-6 text-gray-500" />
+    <div>
+      {previewUrl && (
+        <div className="mb-4">
+          <img src={previewUrl} alt="Preview" className="max-w-full h-32 object-contain rounded-md" />
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium">
-            {isDragging ? "Drop your file here" : "Drag & drop your file here"}
-          </p>
-          <p className="text-xs text-gray-500">
-            Supports {allowedTypes.map(type => type.split('/')[1]).join(', ')} (Max: {maxSizeMB}MB)
-          </p>
-        </div>
-        <div className="flex justify-center">
-          <label className="cursor-pointer">
-            <Input 
-              type="file"
-              className="hidden"
-              onChange={handleFileInput}
-              accept={allowedTypes.join(',')}
-              disabled={isUploading}
-            />
-            <Button 
-              type="button" 
-              variant="outline" 
-              disabled={isUploading}
-              className="flex items-center gap-2"
-            >
-              <UploadIcon className="w-4 h-4" />
-              {isUploading ? "Uploading..." : "Browse files"}
-            </Button>
-          </label>
+      )}
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+          }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="text-center space-y-4">
+          <div className="mx-auto bg-gray-100 rounded-full p-3 w-12 h-12 flex items-center justify-center">
+            <ImageIcon className="w-6 h-6 text-gray-500" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">
+              {isDragging ? "Drop your file here" : "Drag & drop your file here"}
+            </p>
+            <p className="text-xs text-gray-500">
+              Supports {allowedTypes.map(type => type.split('/')[1]).join(', ')} (Max: {maxSizeMB}MB)
+            </p>
+          </div>
+          <div className="flex justify-center">
+            <label className="cursor-pointer">
+              <Input
+                type="file"
+                className="hidden"
+                onChange={handleFileInput}
+                accept={allowedTypes.join(',')}
+                disabled={isUploading}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+                className="flex items-center gap-2"
+              >
+                <UploadIcon className="w-4 h-4" />
+                {isUploading ? "Uploading..." : "Browse files"}
+              </Button>
+            </label>
+          </div>
         </div>
       </div>
     </div>

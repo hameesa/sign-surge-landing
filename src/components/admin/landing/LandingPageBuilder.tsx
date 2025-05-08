@@ -3,16 +3,22 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import LandingPageReviewer from "./LandingPageReviewer";
 import { Download, FileCode, Bot, Check, FileUp, CheckCircle, AlertTriangle, Plus, FileBadge, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { generateLandingPageTemplate } from "@/utils/ai";
 import PageEditor from '@/components/admin/PageEditor';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import TemplateSelector from '../templates/TemplateSelector';
 import { landingPageTemplates } from '../templates/templateData';
+import ComponentsList from '../ComponentsList';
+import SkeletonSelector from './SkeletonSelector';
 
 interface LandingPageBuilderProps {
   onSaveLandingPage: (data: any) => void;
   initialData?: any;
+  initialSEOData?: any;
 }
 
 type BuilderStep = 'template' | 'editor' | 'review' | 'publish';
@@ -22,6 +28,7 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
   const [activeStep, setActiveStep] = useState<BuilderStep>('template');
   const [templateData, setTemplateData] = useState<any>(initialData || null);
   const [pageTitle, setPageTitle] = useState(initialData?.title || 'New Landing Page');
+  const [prompt, setPrompt] = useState<string>('');
   const [reviewScore, setReviewScore] = useState<number>(0);
   const [reviewItems, setReviewItems] = useState<Array<{ name: string; status: 'passed' | 'warning' | 'error' }>>([]);
   
@@ -88,26 +95,28 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
     });
   };
 
-  const handleGenerateAITemplate = () => {
+  const handleGenerateFromPrompt = async () => {
     toast({
       title: "AI Template Generation",
       description: "Generating a custom template based on your business needs...",
     });
-    
-    // In a real implementation, this would interact with an AI service
-    setTimeout(() => {
-      // Just use the third template for demonstration purposes
-      const aiTemplate = landingPageTemplates.find(t => t.isAI);
-      if (aiTemplate) {
-        setTemplateData(aiTemplate.data);
-        setPageTitle("AI-Generated Landing Page");
-        setActiveStep('editor');
-        toast({
-          title: "AI Template Ready",
-          description: "Your custom template has been generated!",
-        });
-      }
-    }, 3000);
+
+    try {
+      const aiTemplate = await generateLandingPageTemplate(prompt);
+      setTemplateData(aiTemplate);
+      setPageTitle("AI-Generated Landing Page");
+      setActiveStep('editor');
+      toast({
+        title: "AI Template Ready",
+        description: "Your custom template has been generated!",
+      });
+    } catch (error) {
+      console.error("Error generating AI template:", error);
+      toast({
+        title: "AI Template Generation Failed",
+        description: "Failed to generate a custom template. Please try again.",
+      });
+    }
   };
 
   const handleSaveEditor = (data: any) => {
@@ -148,11 +157,64 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
           description: "Converting your HTML to a compatible format...",
         });
         
-        // In a real implementation, there would be a parser here to convert HTML to template data
+        // Parse the HTML content
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(htmlContent, 'text/html');
+
+        // Extract the title
+        const title = htmlDoc.querySelector('title')?.textContent || 'Imported HTML Page';
+        setPageTitle(title);
+
+        // Extract the body content
+        const bodyContent = htmlDoc.querySelector('body')?.innerHTML || '<p>No content found</p>';
+
+        // Create a simple template data object
+        const importedTemplateData = {
+          hero: {
+            title: title,
+            subtitle: "Imported from HTML",
+            description: bodyContent,
+            ctaText: "Learn More",
+            features: [],
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            buttonColor: "#000000",
+            buttonTextColor: "#ffffff",
+            layout: "split",
+            alignment: "left",
+            padding: "large",
+            spacing: "medium",
+            showImage: true,
+            imagePosition: "right",
+            imageUrl: "https://via.placeholder.com/600",
+            backgroundImage: ""
+          },
+          achievements: {
+            title: "Our Achievements",
+            items: []
+          },
+          painPoints: {
+            title: "Pain Points",
+            problems: []
+          },
+          faq: {
+            title: "FAQ",
+            items: []
+          },
+          footer: {
+            copyright: "Imported HTML Page",
+            quickLinks: [],
+            socialLinks: [],
+            contactInfo: {
+              address: "",
+              email: "",
+              phone: ""
+            }
+          }
+        };
+        
         setTimeout(() => {
-          // Just use a default template for this demo
-          setTemplateData(landingPageTemplates[0].data);
-          setPageTitle("Imported HTML Page");
+          setTemplateData(importedTemplateData);
           setActiveStep('editor');
           
           toast({
@@ -163,6 +225,38 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
       };
       reader.readAsText(file);
     }
+  };
+
+  const handleHTMLExport = () => {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${pageTitle}</title>
+      </head>
+      <body>
+        <h1>${pageTitle}</h1>
+        <p>Landing Page Content</p>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${pageTitle}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePDFExport = () => {
+    toast({
+      title: "PDF Export",
+      description: "PDF export is not yet implemented.",
+    });
   };
 
   return (
@@ -241,19 +335,71 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
       </div>
       
       {/* Template selection step */}
+      {/* Single-line prompt input */}
       {activeStep === 'template' && (
-        <TemplateSelector 
-          onSelectTemplate={handleSelectTemplate}
-          onGenerateAITemplate={handleGenerateAITemplate}
-        />
+        <div className="space-y-4">
+          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700">
+            Single-line Prompt
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="prompt"
+              id="prompt"
+              className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+              placeholder="Enter a single-line prompt to generate a landing page"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleGenerateFromPrompt}>Generate from Prompt</Button>
+        </div>
       )}
       
+      <TemplateSelector
+        onSelectTemplate={handleSelectTemplate}
+      />
+      {activeStep === 'template' && (
+        <SkeletonSelector
+          onSelectSkeleton={(skeleton) => {
+            console.log('Selected skeleton:', skeleton);
+            
+            const initialData = skeleton.reduce((acc, section) => {
+              acc[section] = {}; // Initialize each section with an empty object
+              return acc;
+            }, {});
+
+            setTemplateData(initialData);
+            setActiveStep('editor');
+            
+            toast({
+              title: "Skeleton Selected",
+              description: `You have selected a skeleton with structure: ${skeleton.join(', ')}`,
+            });
+          }}
+        />
+      )}
       {/* Editor step */}
       {activeStep === 'editor' && templateData && (
-        <PageEditor
-          initialComponentsData={templateData}
-          onSave={handleSaveEditor}
-        />
+        <ErrorBoundary>
+          <div className="flex">
+            <div className="w-1/4">
+              <ComponentsList onSelectComponent={(componentId: string) => {
+                console.log(`Selected component: ${componentId}`);
+                toast({
+                  title: "Component Selected",
+                  description: `You have selected ${componentId}`,
+                });
+              }} activeSection="" />
+            </div>
+          <div className="w-3/4">
+            <PageEditor
+              initialComponentsData={templateData}
+              onSave={handleSaveEditor}
+            />
+          </div>
+        </div>
+        </ErrorBoundary>
       )}
       
       {/* Review step */}
@@ -374,6 +520,7 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
               </Button>
             </div>
           </div>
+          <LandingPageReviewer content={""} />
         </div>
       )}
       
@@ -402,10 +549,10 @@ const LandingPageBuilder = ({ onSaveLandingPage, initialData }: LandingPageBuild
                 <div className="pt-4 border-t mt-6">
                   <h4 className="font-medium mb-3">Export Options</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={handleHTMLExport}>
                       <Download className="w-4 h-4 mr-2" /> HTML Export
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={handlePDFExport}>
                       <Download className="w-4 h-4 mr-2" /> PDF Export
                     </Button>
                   </div>

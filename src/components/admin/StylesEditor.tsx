@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,7 @@ const StylesEditor = ({ sectionId, componentsData, updateComponentData }: Styles
   const [elementType, setElementType] = useState('section');
   const [fontSize, setFontSize] = useState<number>(16);
   const [spacing, setSpacing] = useState<number>(16);
+  const [margin, setMargin] = useState<number>(24);
   const [colors, setColors] = useState({
     background: '#ffffff',
     text: '#000000',
@@ -77,11 +77,21 @@ const StylesEditor = ({ sectionId, componentsData, updateComponentData }: Styles
   };
 
   const handleSpacingChange = (property: string, value: number[]) => {
-    setSpacing(value[0]);
+    const newValue = value[0];
+    if (property === 'padding') {
+        setSpacing(newValue);
+    } else if (property === 'margin') {
+        setMargin(newValue);
+    }
 
     // Map spacing properties to component data properties
     if (sectionId === 'hero') {
-      const spaceValue = value[0] < 12 ? 'small' : value[0] < 24 ? 'medium' : 'large';
+      let spaceValue = 'medium';
+      if(newValue < 12) {
+        spaceValue = 'small'
+      } else if (newValue > 24) {
+        spaceValue = 'large'
+      }
       
       if (property === 'padding') {
         updateComponentData('hero', 'padding', spaceValue);
@@ -153,6 +163,28 @@ const StylesEditor = ({ sectionId, componentsData, updateComponentData }: Styles
     }
   };
 
+  const layoutStyles = [
+    { id: 'default', name: 'Default', styles: {} },
+    { id: 'modern', name: 'Modern', styles: { fontFamily: 'sans-serif', fontWeight: 'normal' } },
+    { id: 'bold', name: 'Bold', styles: { fontWeight: 'bold' } },
+  ];
+
+  const handleApplyLayoutStyle = (styleId: string) => {
+    const selectedStyle = layoutStyles.find(style => style.id === styleId);
+    if (selectedStyle) {
+      // Apply the selected style to the component data
+      if (sectionId === 'hero') {
+        Object.entries(selectedStyle.styles).forEach(([key, value]) => {
+          updateComponentData('hero', key, value);
+        });
+      }
+      toast({
+        title: "Layout style applied",
+        description: `${selectedStyle.name} layout style has been applied`,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 h-[calc(100vh-250px)] overflow-auto">
       <div>
@@ -169,12 +201,30 @@ const StylesEditor = ({ sectionId, componentsData, updateComponentData }: Styles
           </SelectContent>
         </Select>
       </div>
+
+      <div className="space-y-4">
+        <h3 className="text-md font-medium">Layout Styles</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {layoutStyles.map((style) => (
+            <Button
+              key={style.id}
+              variant="outline"
+              className="h-12 bg-white hover:bg-gray-50 border-2"
+              onClick={() => handleApplyLayoutStyle(style.id)}
+            >
+              <span className="flex flex-col items-center">
+                <span className="text-xs mt-1">{style.name}</span>
+              </span>
+            </Button>
+          ))}
+        </div>
+      </div>
       
       <div className="space-y-4">
         <h3 className="text-md font-medium">Color Presets</h3>
         <div className="grid grid-cols-4 gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-12 bg-white hover:bg-gray-50 border-2"
             onClick={() => applyColorPalette('modern')}
           >
@@ -387,10 +437,10 @@ const StylesEditor = ({ sectionId, componentsData, updateComponentData }: Styles
         <div className="space-y-2">
           <div className="flex justify-between">
             <Label>Margin</Label>
-            <span className="text-sm text-gray-500">24px</span>
+            <span className="text-sm text-gray-500">{margin}px</span>
           </div>
           <Slider 
-            defaultValue={[24]} 
+            defaultValue={[margin]} 
             min={0} 
             max={64} 
             step={4}
