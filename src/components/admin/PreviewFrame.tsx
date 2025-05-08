@@ -1,15 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { ComponentData } from './PageEditor';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Pencil, Check, X } from 'lucide-react';
 
 interface PreviewFrameProps {
   sectionId: string;
   componentsData: ComponentData;
+  onDirectEdit?: (sectionId: string, elementId: string, newValue: any) => void;
+  editMode?: boolean;
 }
 
-const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
+const PreviewFrame = ({ sectionId, componentsData, onDirectEdit, editMode = false }: PreviewFrameProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [previewSize, setPreviewSize] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [activeEditElement, setActiveEditElement] = useState<{ id: string; value: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
   
   // Simulate loading preview
   useEffect(() => {
@@ -19,6 +26,11 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
     }, 500);
     
     return () => clearTimeout(timer);
+  }, [sectionId]);
+  
+  // Reset active edit element when section changes
+  useEffect(() => {
+    setActiveEditElement(null);
   }, [sectionId]);
 
   // Get the appropriate container class based on the preview size
@@ -35,16 +47,70 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
     }
   };
 
-  // Get the section data based on the section ID
-  const getSectionData = () => {
-    return componentsData[sectionId as keyof ComponentData];
+  // This function starts the editing process for an element
+  const startEdit = (id: string, value: string) => {
+    if (!editMode || !onDirectEdit) return;
+    
+    setActiveEditElement({ id, value });
+    setEditValue(value);
+  };
+
+  // This function saves the edited value
+  const saveEdit = () => {
+    if (!activeEditElement || !onDirectEdit) return;
+    
+    onDirectEdit(sectionId, activeEditElement.id, editValue);
+    setActiveEditElement(null);
+  };
+
+  // This function cancels the edit
+  const cancelEdit = () => {
+    setActiveEditElement(null);
+  };
+
+  // This function creates an editable element
+  const createEditableElement = (id: string, value: string, type: 'text' | 'heading', className?: string) => {
+    if (activeEditElement?.id === id) {
+      return (
+        <div className="flex items-center gap-2 border border-blue-400 p-1 bg-blue-50 rounded">
+          <Input 
+            value={editValue} 
+            onChange={(e) => setEditValue(e.target.value)} 
+            autoFocus
+            className="flex-1"
+          />
+          <Button size="sm" variant="ghost" onClick={saveEdit}>
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={cancelEdit}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    }
+    
+    const Element = type === 'heading' ? 'h2' : 'p';
+    
+    return (
+      <div className="relative group">
+        <Element className={className}>
+          {value}
+        </Element>
+        {editMode && onDirectEdit && (
+          <button 
+            onClick={() => startEdit(id, value)} 
+            className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
   };
 
   // This function generates the preview for each section type
   const getSectionPreview = () => {
-    const currentSection = getSectionData();
-    
-    if (!currentSection) {
+    if (!componentsData[sectionId as keyof ComponentData]) {
       return (
         <div className="bg-gray-100 p-8 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">Select a section to preview</p>
@@ -54,7 +120,7 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
     
     switch (sectionId) {
       case 'hero': {
-        const heroSection = currentSection as ComponentData['hero'];
+        const heroSection = componentsData.hero;
         
         const sectionStyle = {
           backgroundColor: heroSection.backgroundColor,
@@ -92,22 +158,55 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
               )}
               
               <div className={`${heroSection.showImage && heroSection.imageUrl ? 'flex-1' : 'w-full'}`}>
-                {heroSection.title && <h2 className="text-3xl font-bold mb-2">{heroSection.title}</h2>}
-                {heroSection.subtitle && <h3 className="text-xl font-bold mb-3">{heroSection.subtitle}</h3>}
-                {heroSection.description && <p className="mb-4">{heroSection.description}</p>}
+                {createEditableElement('title', heroSection.title, 'heading', 'text-3xl font-bold mb-2')}
+                {createEditableElement('subtitle', heroSection.subtitle, 'heading', 'text-xl font-bold mb-3')}
+                {createEditableElement('description', heroSection.description, 'text', 'mb-4')}
                 
                 {heroSection.features && heroSection.features.length > 0 && (
                   <ul className="mb-4 space-y-1">
                     {heroSection.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2">
+                      <li key={index} className="flex items-center gap-2 relative group">
                         <span className="text-primary">✓</span> {feature}
+                        {editMode && onDirectEdit && (
+                          <button 
+                            onClick={() => startEdit(`features[${index}]`, feature)} 
+                            className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
                 )}
                 
-                {heroSection.ctaText && (
-                  <button style={buttonStyle}>{heroSection.ctaText}</button>
+                {activeEditElement?.id === 'ctaText' ? (
+                  <div className="mt-4 flex items-center gap-2 border border-blue-400 p-1 bg-blue-50 rounded">
+                    <Input 
+                      value={editValue} 
+                      onChange={(e) => setEditValue(e.target.value)} 
+                      autoFocus
+                      className="flex-1"
+                    />
+                    <Button size="sm" variant="ghost" onClick={saveEdit}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative group">
+                    <button style={buttonStyle}>{heroSection.ctaText}</button>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit('ctaText', heroSection.ctaText)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
               
@@ -122,16 +221,38 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
       }
       
       case 'achievements': {
-        const achievementsSection = currentSection as ComponentData['achievements'];
+        const achievementsSection = componentsData.achievements;
         
         return (
           <div className="bg-white p-8 rounded-lg border">
-            <h2 className="text-2xl font-bold mb-6 text-center">{achievementsSection.title}</h2>
+            {createEditableElement('title', achievementsSection.title, 'heading', 'text-2xl font-bold mb-6 text-center')}
+            
             <div className="grid grid-cols-3 gap-4">
               {achievementsSection.items.map((item, index) => (
-                <div key={index} className="text-center">
-                  <p className="text-2xl font-bold text-highlight">{item.number}</p>
-                  <p className="text-gray-500">{item.label}</p>
+                <div key={index} className="text-center relative group">
+                  <div className="relative group">
+                    <p className="text-2xl font-bold text-highlight">{item.number}</p>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`achievements.items[${index}].number`, item.number)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative group">
+                    <p className="text-gray-500">{item.label}</p>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`achievements.items[${index}].label`, item.label)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -140,16 +261,38 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
       }
       
       case 'faq': {
-        const faqSection = currentSection as ComponentData['faq'];
+        const faqSection = componentsData.faq;
         
         return (
           <div className="bg-gray-50 p-8 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">{faqSection.title}</h2>
+            {createEditableElement('title', faqSection.title, 'heading', 'text-2xl font-bold mb-6')}
+            
             <div className="space-y-4">
               {faqSection.items.map((item, index) => (
                 <div key={index} className="p-4 bg-white rounded-lg">
-                  <h3 className="font-bold">{item.question}</h3>
-                  <p className="text-gray-600">{item.answer}</p>
+                  <div className="relative group">
+                    <h3 className="font-bold">{item.question}</h3>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`faq.items[${index}].question`, item.question)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative group">
+                    <p className="text-gray-600">{item.answer}</p>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`faq.items[${index}].answer`, item.answer)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -158,19 +301,42 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
       }
       
       case 'painPoints': {
-        const painPointsSection = currentSection as ComponentData['painPoints'];
+        const painPointsSection = componentsData.painPoints;
         
         return (
           <div className="bg-white p-8 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6 text-center">{painPointsSection.title}</h2>
+            {createEditableElement('title', painPointsSection.title, 'heading', 'text-2xl font-bold mb-6 text-center')}
+            
             <div className="grid grid-cols-3 gap-4">
               {painPointsSection.problems.map((problem) => (
                 <div key={problem.id} className="p-4 border rounded-lg">
                   <div className="bg-gray-100 w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-4">
                     {problem.icon}
                   </div>
-                  <h3 className="text-lg font-bold mb-2">{problem.question}</h3>
-                  <p className="text-gray-600">{problem.description}</p>
+                  
+                  <div className="relative group">
+                    <h3 className="text-lg font-bold mb-2">{problem.question}</h3>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`painPoints.problems[${problem.id-1}].question`, problem.question)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="relative group">
+                    <p className="text-gray-600">{problem.description}</p>
+                    {editMode && onDirectEdit && (
+                      <button 
+                        onClick={() => startEdit(`painPoints.problems[${problem.id-1}].description`, problem.description)} 
+                        className="absolute top-0 right-0 bg-blue-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -223,7 +389,13 @@ const PreviewFrame = ({ sectionId, componentsData }: PreviewFrameProps) => {
             <div className="w-full">
               {getSectionPreview()}
               <div className="mt-4 text-center text-sm text-gray-500">
-                <p>This is a preview of the {sectionId} section.</p>
+                <p className="flex items-center justify-center gap-1">
+                  {editMode && (
+                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">
+                      Click on any text element to edit it directly
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           )}

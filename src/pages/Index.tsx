@@ -39,11 +39,20 @@ const Index = () => {
       }
     };
     
+    // Setup BroadcastChannel for better cross-tab communication
+    const channel = new BroadcastChannel('landing_page_updates');
+    channel.onmessage = (event) => {
+      if (event.data?.type === 'publish') {
+        setPublishedData(event.data.data);
+      }
+    };
+    
     window.addEventListener('storage', handleStorageChange);
     
     // Clean up event listener
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      channel.close();
     };
   }, []);
 

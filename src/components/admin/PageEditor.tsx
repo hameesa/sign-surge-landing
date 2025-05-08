@@ -7,7 +7,14 @@ import ComponentEditor from './ComponentEditor';
 import PreviewFrame from './PreviewFrame';
 import ComponentsList from './ComponentsList';
 import StylesEditor from './StylesEditor';
-import CodeViewer from './CodeViewer';
+import CodeEditor from './CodeEditor';
+import { Download, Eye, FileText, Save } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define a shared type for component data that will be used across files
 export type ComponentData = {
@@ -48,7 +55,9 @@ const PageEditor = () => {
   const [activeSection, setActiveSection] = useState('hero');
   const [selectedComponent, setSelectedComponent] = useState('');
   const [showCodeViewer, setShowCodeViewer] = useState(false);
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const { toast } = useToast();
+  const [editMode, setEditMode] = useState<'visual' | 'code'>('visual');
   
   // Define the initial data structure for all editable components
   const [componentsData, setComponentsData] = useState<ComponentData>({
@@ -145,13 +154,34 @@ const PageEditor = () => {
     setComponentsData(prev => {
       if (!prev[section as keyof ComponentData]) return prev;
       
-      return {
+      const updatedData = {
         ...prev,
         [section]: {
           ...prev[section as keyof ComponentData],
           [field]: value
         }
       };
+      
+      // Auto-save changes as draft
+      localStorage.setItem('landingPageData', JSON.stringify(updatedData));
+      
+      return updatedData;
+    });
+  };
+
+  const handleDirectEdit = (sectionId: string, elementId: string, newValue: any) => {
+    if (!componentsData[sectionId as keyof ComponentData]) return;
+    
+    // Update the direct edit value
+    updateComponentData(sectionId, elementId, newValue);
+    
+    // Auto-focus this section
+    setActiveSection(sectionId);
+    setSelectedComponent(elementId);
+    
+    toast({
+      title: "Element updated",
+      description: `Changes to ${elementId} have been saved to your draft`,
     });
   };
 
@@ -162,9 +192,15 @@ const PageEditor = () => {
     // Also save as published data which the front-end will use
     localStorage.setItem('publishedLandingPageData', JSON.stringify(componentsData));
 
-    // Dispatch custom event to notify other tabs/windows
-    const event = new Event('storage');
-    window.dispatchEvent(event);
+    // Use BroadcastChannel API for better cross-tab communication
+    const channel = new BroadcastChannel('landing_page_updates');
+    channel.postMessage({ type: 'publish', data: componentsData });
+    
+    // Also dispatch storage event for backwards compatibility
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'publishedLandingPageData',
+      newValue: JSON.stringify(componentsData)
+    }));
     
     toast({
       title: "Changes published",
@@ -182,6 +218,151 @@ const PageEditor = () => {
     });
   };
 
+  const exportAsHTML = () => {
+    // Generate HTML for the landing page
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Landing Page Export</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
+            .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+            .hero { padding: 2rem 0; }
+            .hero h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+            .hero h2 { font-size: 1.8rem; margin-bottom: 1rem; }
+            .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+            .feature { display: flex; align-items: center; }
+            .feature-icon { margin-right: 0.5rem; }
+            .cta-button { 
+              background-color: ${componentsData.hero.buttonColor}; 
+              color: ${componentsData.hero.buttonTextColor}; 
+              padding: 1rem 2rem; 
+              border: none; 
+              border-radius: 0.25rem;
+              font-weight: bold;
+              cursor: pointer;
+            }
+            .achievements { padding: 2rem 0; text-align: center; }
+            .achievement-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+            .achievement-item { padding: 1rem; }
+            .achievement-number { font-size: 2.5rem; font-weight: bold; color: #4338ca; }
+            .faq-section { padding: 2rem 0; }
+            .faq-item { margin-bottom: 1rem; }
+            .faq-question { font-weight: bold; margin-bottom: 0.5rem; }
+            .faq-answer { margin-left: 1rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div class="container">
+              <h2>iDesign</h2>
+            </div>
+          </header>
+
+          <main>
+            <section class="hero" style="background-color: ${componentsData.hero.backgroundColor}; color: ${componentsData.hero.textColor};">
+              <div class="container">
+                <h1>${componentsData.hero.title}</h1>
+                <h2>${componentsData.hero.subtitle}</h2>
+                <p>${componentsData.hero.description}</p>
+                <div class="features">
+                  ${componentsData.hero.features.map(feature => 
+                    `<div class="feature"><span class="feature-icon">✓</span> ${feature}</div>`
+                  ).join('')}
+                </div>
+                <button class="cta-button">${componentsData.hero.ctaText}</button>
+              </div>
+            </section>
+
+            <section class="achievements">
+              <div class="container">
+                <h2>${componentsData.achievements.title}</h2>
+                <div class="achievement-grid">
+                  ${componentsData.achievements.items.map(item => 
+                    `<div class="achievement-item">
+                      <div class="achievement-number">${item.number}</div>
+                      <div class="achievement-label">${item.label}</div>
+                    </div>`
+                  ).join('')}
+                </div>
+              </div>
+            </section>
+
+            <section class="faq-section">
+              <div class="container">
+                <h2>${componentsData.faq.title}</h2>
+                <div class="faq-items">
+                  ${componentsData.faq.items.map(item => 
+                    `<div class="faq-item">
+                      <div class="faq-question">${item.question}</div>
+                      <div class="faq-answer">${item.answer}</div>
+                    </div>`
+                  ).join('')}
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <footer>
+            <div class="container">
+              <p>&copy; ${new Date().getFullYear()} IDesign. All rights reserved.</p>
+            </div>
+          </footer>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'landing-page-export.html';
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    toast({
+      title: "HTML Export Complete",
+      description: "Your landing page has been exported as HTML",
+    });
+  };
+
+  const exportAsPDF = () => {
+    toast({
+      title: "PDF Export",
+      description: "Preparing PDF export... This feature will be available soon.",
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent, targetSection: string) => {
+    e.preventDefault();
+    const componentData = JSON.parse(e.dataTransfer.getData('component'));
+    
+    toast({
+      title: "Component Added",
+      description: `${componentData.name} added to ${targetSection}`,
+    });
+    
+    // Here we would actually add the component to the section
+    console.log('Added component', componentData, 'to section', targetSection);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleViewSite = () => {
+    window.open('/', '_blank');
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -189,8 +370,31 @@ const PageEditor = () => {
           <h2 className="text-lg font-medium">Page Sections</h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleSaveDraft}>
-              Save Draft
+              <Save className="w-4 h-4 mr-1" /> Save Draft
             </Button>
+            
+            <DropdownMenu open={showExportOptions} onOpenChange={setShowExportOptions}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="w-4 h-4 mr-1" /> Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportAsHTML}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as HTML
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportAsPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button variant="outline" onClick={handleViewSite}>
+              <Eye className="w-4 h-4 mr-1" /> Preview
+            </Button>
+            
             <Button onClick={handlePublish}>
               Publish Changes
             </Button>
@@ -202,8 +406,14 @@ const PageEditor = () => {
               key={section.id}
               variant={activeSection === section.id ? "default" : "outline"}
               onClick={() => setActiveSection(section.id)}
+              onDrop={(e) => handleDrop(e, section.id)}
+              onDragOver={handleDragOver}
+              className="relative"
             >
               {section.name}
+              {activeSection === section.id && (
+                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary"></span>
+              )}
             </Button>
           ))}
         </div>
@@ -232,7 +442,11 @@ const PageEditor = () => {
               />
             </TabsContent>
             <TabsContent value="styles" className="p-4">
-              <StylesEditor sectionId={activeSection} />
+              <StylesEditor 
+                sectionId={activeSection} 
+                componentsData={componentsData}
+                updateComponentData={updateComponentData}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -241,24 +455,37 @@ const PageEditor = () => {
           <div className="p-4 border-b">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Preview</h2>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCodeViewer(!showCodeViewer)}
-              >
-                {showCodeViewer ? "Show Visual Preview" : "View Code"}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant={editMode === 'visual' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditMode('visual')}
+                >
+                  Visual Editor
+                </Button>
+                <Button 
+                  variant={editMode === 'code' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditMode('code')}
+                >
+                  Code Editor
+                </Button>
+              </div>
             </div>
           </div>
           <div className="flex-1 p-4 overflow-auto">
-            {showCodeViewer ? (
-              <CodeViewer
+            {editMode === 'code' ? (
+              <CodeEditor
                 sectionId={activeSection}
                 componentsData={componentsData}
+                updateComponentData={updateComponentData}
               />
             ) : (
               <PreviewFrame 
                 sectionId={activeSection} 
-                componentsData={componentsData} 
+                componentsData={componentsData}
+                onDirectEdit={handleDirectEdit}
+                editMode={true}
               />
             )}
           </div>
