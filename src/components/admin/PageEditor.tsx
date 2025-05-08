@@ -7,6 +7,7 @@ import ComponentEditor from './ComponentEditor';
 import PreviewFrame from './PreviewFrame';
 import ComponentsList from './ComponentsList';
 import StylesEditor from './StylesEditor';
+import CodeViewer from './CodeViewer';
 
 // Define a shared type for component data that will be used across files
 export type ComponentData = {
@@ -46,6 +47,7 @@ export type ComponentData = {
 const PageEditor = () => {
   const [activeSection, setActiveSection] = useState('hero');
   const [selectedComponent, setSelectedComponent] = useState('');
+  const [showCodeViewer, setShowCodeViewer] = useState(false);
   const { toast } = useToast();
   
   // Define the initial data structure for all editable components
@@ -159,6 +161,10 @@ const PageEditor = () => {
     
     // Also save as published data which the front-end will use
     localStorage.setItem('publishedLandingPageData', JSON.stringify(componentsData));
+
+    // Dispatch custom event to notify other tabs/windows
+    const event = new Event('storage');
+    window.dispatchEvent(event);
     
     toast({
       title: "Changes published",
@@ -212,7 +218,10 @@ const PageEditor = () => {
               <TabsTrigger value="styles">Styles</TabsTrigger>
             </TabsList>
             <TabsContent value="components" className="p-4">
-              <ComponentsList onSelectComponent={setSelectedComponent} />
+              <ComponentsList 
+                onSelectComponent={setSelectedComponent} 
+                activeSection={activeSection}
+              />
             </TabsContent>
             <TabsContent value="properties" className="p-4">
               <ComponentEditor 
@@ -232,13 +241,26 @@ const PageEditor = () => {
           <div className="p-4 border-b">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium">Preview</h2>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCodeViewer(!showCodeViewer)}
+              >
+                {showCodeViewer ? "Show Visual Preview" : "View Code"}
+              </Button>
             </div>
           </div>
           <div className="flex-1 p-4 overflow-auto">
-            <PreviewFrame 
-              sectionId={activeSection} 
-              componentsData={componentsData} 
-            />
+            {showCodeViewer ? (
+              <CodeViewer
+                sectionId={activeSection}
+                componentsData={componentsData}
+              />
+            ) : (
+              <PreviewFrame 
+                sectionId={activeSection} 
+                componentsData={componentsData} 
+              />
+            )}
           </div>
         </div>
       </div>

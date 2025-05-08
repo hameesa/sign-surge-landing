@@ -1,11 +1,13 @@
 
 import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ComponentsListProps {
   onSelectComponent: (componentId: string) => void;
+  activeSection: string;
 }
 
-const ComponentsList = ({ onSelectComponent }: ComponentsListProps) => {
+const ComponentsList = ({ onSelectComponent, activeSection }: ComponentsListProps) => {
   // List of live components on the landing page
   const landingPageComponents = [
     {
@@ -67,12 +69,29 @@ const ComponentsList = ({ onSelectComponent }: ComponentsListProps) => {
     e.dataTransfer.setData('component', JSON.stringify(component));
   };
 
+  // Find active components based on current section
+  const activeComponents = landingPageComponents.filter(
+    component => component.id === activeSection
+  );
+
   return (
     <div className="space-y-6 h-[calc(100vh-250px)] overflow-auto">
       <div className="space-y-2 mb-6">
-        <h3 className="text-sm font-medium text-gray-500">Page Components</h3>
+        <h3 className="text-sm font-medium text-gray-500">
+          {activeSection !== '' ? 'Section Components' : 'Page Components'}
+        </h3>
+        
+        {activeSection !== '' && (
+          <div className="bg-gray-50 p-3 border rounded-md mb-4">
+            <h4 className="text-sm font-medium mb-2">Active Section: {activeSection}</h4>
+            <p className="text-xs text-gray-500">
+              Select a component below to edit its properties
+            </p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 gap-2">
-          {landingPageComponents.map((component) => (
+          {(activeSection ? activeComponents : landingPageComponents).map((component) => (
             <button
               key={component.id}
               className="p-3 bg-gray-50 border rounded-md text-left hover:bg-gray-100 transition-colors"

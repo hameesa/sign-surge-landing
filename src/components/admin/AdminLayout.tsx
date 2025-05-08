@@ -8,6 +8,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import CodeViewer from './CodeViewer';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -92,44 +93,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <header className="bg-white p-4 shadow-sm flex justify-between items-center">
           <h1 className="text-xl font-semibold">Landing Page Editor</h1>
           <div className="flex space-x-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline">
-                  <Code className="mr-2" size={16} />
-                  Code View
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[600px] sm:w-[800px] overflow-auto">
-                <div className="h-full">
-                  <h2 className="text-lg font-medium mb-4">Page Code</h2>
-                  <pre className="bg-gray-100 p-4 rounded-md overflow-auto text-sm h-[80vh]">
-                    {/* This would show the actual page code in a real implementation */}
-                    {`// Landing page code would be displayed here
-import React from 'react';
-import Header from '@/components/Header';
-import Hero from '@/components/Hero';
-// ... more imports
-
-const Index = () => {
-  return (
-    <div className="min-h-screen">
-      <Header />
-      <main>
-        <Hero />
-        {/* More components */}
-    </div>
-  );
-};
-
-export default Index;`}
-                  </pre>
-                </div>
-              </SheetContent>
-            </Sheet>
-            
-            <Button>
-              <Save className="mr-2" size={16} />
-              Save Changes
+            <Button variant="outline" onClick={() => window.open('/', '_blank')}>
+              <Eye className="mr-2" size={16} />
+              View Live Site
             </Button>
           </div>
         </header>

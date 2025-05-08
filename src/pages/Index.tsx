@@ -18,14 +18,33 @@ const Index = () => {
   
   useEffect(() => {
     // Load published data from local storage
-    const savedData = localStorage.getItem('publishedLandingPageData');
-    if (savedData) {
-      try {
-        setPublishedData(JSON.parse(savedData));
-      } catch (error) {
-        console.error('Failed to parse published data:', error);
+    const loadPublishedData = () => {
+      const savedData = localStorage.getItem('publishedLandingPageData');
+      if (savedData) {
+        try {
+          setPublishedData(JSON.parse(savedData));
+        } catch (error) {
+          console.error('Failed to parse published data:', error);
+        }
       }
-    }
+    };
+    
+    // Load data initially
+    loadPublishedData();
+    
+    // Set up event listener for storage changes
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'publishedLandingPageData') {
+        loadPublishedData();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return (
