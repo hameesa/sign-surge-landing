@@ -1,37 +1,5 @@
-
 import React from 'react';
-
-type FooterData = {
-  copyright: string;
-  quickLinks: Array<{label: string, url: string}>;
-  socialLinks: Array<{label: string, url: string}>;
-  contactInfo: {
-    address: string;
-    email: string;
-    phone: string;
-  };
-};
-
-// Default data used when no custom data is provided
-const defaultFooterData: FooterData = {
-  copyright: `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
-  quickLinks: [
-    { label: "Services", url: "#" },
-    { label: "Case Studies", url: "#testimonials" },
-    { label: "FAQ", url: "#faq" },
-    { label: "Contact", url: "#" }
-  ],
-  socialLinks: [
-    { label: "Facebook", url: "#" },
-    { label: "Instagram", url: "#" },
-    { label: "LinkedIn", url: "#" }
-  ],
-  contactInfo: {
-    address: "Business Bay, Dubai, UAE",
-    email: "info@idesignads.ae",
-    phone: "+971 4 123 4567"
-  }
-};
+import { FooterData } from '@/components/admin/PageEditor';
 
 interface FooterProps {
   customData?: Partial<FooterData>;
@@ -39,6 +7,26 @@ interface FooterProps {
 
 const Footer = ({ customData }: FooterProps) => {
   // Merge default data with custom data if provided
+  const defaultFooterData: FooterData = {
+    copyright: `© ${new Date().getFullYear()} IDesign Ads. All rights reserved.`,
+    quickLinks: [
+      { label: "Services", url: "#" },
+      { label: "Case Studies", url: "#testimonials" },
+      { label: "FAQ", url: "#faq" },
+      { label: "Contact", url: "#" }
+    ],
+    socialLinks: [
+      { label: "Facebook", url: "#" },
+      { label: "Instagram", url: "#" },
+      { label: "LinkedIn", url: "#" }
+    ],
+    contactInfo: {
+      address: "Business Bay, Dubai, UAE",
+      email: "info@idesignads.ae",
+      phone: "+971 4 123 4567"
+    }
+  };
+  
   const data = customData ? { ...defaultFooterData, ...customData } : defaultFooterData;
   
   return (

@@ -1,11 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
+import { AchievementsData } from '@/components/admin/PageEditor';
 
 interface AchievementsProps {
-  customData?: {
-    title: string;
-    items: Array<{ number: string; label: string }>;
-  };
+  customData?: Partial<AchievementsData>;
 }
 
 const Achievements = ({ customData }: AchievementsProps) => {

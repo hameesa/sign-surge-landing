@@ -1,27 +1,9 @@
-
 import React from 'react';
 import { ArrowRight } from "lucide-react";
+import { HeroData } from '@/components/admin/PageEditor';
 
 interface HeroProps {
-  customData?: {
-    title: string;
-    subtitle: string;
-    description: string;
-    ctaText: string;
-    features: string[];
-    backgroundColor: string;
-    textColor: string;
-    buttonColor: string;
-    buttonTextColor: string;
-    layout: string;
-    alignment: string;
-    padding: string;
-    spacing: string;
-    showImage: boolean;
-    imagePosition: string;
-    imageUrl: string;
-    backgroundImage: string;
-  };
+  customData?: Partial<HeroData>;
 }
 
 const Hero = ({ customData }: HeroProps) => {

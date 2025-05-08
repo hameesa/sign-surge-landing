@@ -1,16 +1,8 @@
-
 import React from 'react';
+import { PainPointsData } from '@/components/admin/PageEditor';
 
 interface PainPointsProps {
-  customData?: {
-    title: string;
-    problems: Array<{
-      id: number;
-      question: string;
-      icon: string;
-      description: string;
-    }>;
-  };
+  customData?: Partial<PainPointsData>;
 }
 
 const PainPoints = ({ customData }: PainPointsProps) => {

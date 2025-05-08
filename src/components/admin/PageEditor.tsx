@@ -18,49 +18,60 @@ import {
 import FileUploader from './FileUploader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
+// Define specific types for each component section
+export type HeroData = {
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaText: string;
+  features: string[];
+  backgroundColor: string;
+  textColor: string;
+  buttonColor: string;
+  buttonTextColor: string;
+  layout: string;
+  alignment: string;
+  padding: string;
+  spacing: string;
+  showImage: boolean;
+  imagePosition: string;
+  imageUrl: string;
+  backgroundImage: string;
+};
+
+export type AchievementsData = {
+  title: string;
+  items: Array<{ number: string; label: string }>;
+};
+
+export type FAQData = {
+  title: string;
+  items: Array<{ question: string; answer: string }>;
+};
+
+export type PainPointsData = {
+  title: string;
+  problems: Array<{ id: number; question: string; icon: string; description: string }>;
+};
+
+export type FooterData = {
+  copyright: string;
+  quickLinks: Array<{label: string, url: string}>;
+  socialLinks: Array<{label: string, url: string}>;
+  contactInfo: {
+    address: string;
+    email: string;
+    phone: string;
+  };
+};
+
 // Define a shared type for component data that will be used across files
 export type ComponentData = {
-  hero: {
-    title: string;
-    subtitle: string;
-    description: string;
-    ctaText: string;
-    features: string[];
-    backgroundColor: string;
-    textColor: string;
-    buttonColor: string;
-    buttonTextColor: string;
-    layout: string;
-    alignment: string;
-    padding: string;
-    spacing: string;
-    showImage: boolean;
-    imagePosition: string;
-    imageUrl: string;
-    backgroundImage: string;
-  };
-  achievements: {
-    title: string;
-    items: Array<{ number: string; label: string }>;
-  };
-  faq: {
-    title: string;
-    items: Array<{ question: string; answer: string }>;
-  };
-  painPoints: {
-    title: string;
-    problems: Array<{ id: number; question: string; icon: string; description: string }>;
-  };
-  footer?: {
-    copyright: string;
-    quickLinks: Array<{label: string, url: string}>;
-    socialLinks: Array<{label: string, url: string}>;
-    contactInfo: {
-      address: string;
-      email: string;
-      phone: string;
-    };
-  };
+  hero: HeroData;
+  achievements: AchievementsData;
+  faq: FAQData;
+  painPoints: PainPointsData;
+  footer: FooterData;
 };
 
 interface PageEditorProps {

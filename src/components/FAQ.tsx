@@ -1,15 +1,9 @@
-
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { FAQData } from '@/components/admin/PageEditor';
 
 interface FAQProps {
-  customData?: {
-    title: string;
-    items: Array<{
-      question: string;
-      answer: string;
-    }>;
-  };
+  customData?: Partial<FAQData>;
 }
 
 const FAQ = ({ customData }: FAQProps) => {
